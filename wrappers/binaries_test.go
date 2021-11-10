@@ -98,6 +98,39 @@ func (s *binariesTestSuite) TestAddSnapBinariesAndRemoveWithCompleters(c *C) {
 	s.testAddSnapBinariesAndRemove(c)
 }
 
+func (s *binariesTestSuite) TestAddSnapBinariesAndRemoveWithLegacyCompleters(c *C) {
+	c.Assert(os.MkdirAll(dirs.CompletersDir, 0755), IsNil)
+	if s.base == "core-with-snapd" {
+		c.Check(os.MkdirAll(filepath.Join(dirs.SnapMountDir, "snapd/current/usr/lib/snapd"), 0755), IsNil)
+	}
+	c.Assert(os.MkdirAll(filepath.Dir(dirs.CompleteShPath(s.base)), 0755), IsNil)
+	c.Assert(ioutil.WriteFile(dirs.CompleteShPath(s.base), nil, 0644), IsNil)
+	c.Assert(os.MkdirAll(dirs.LegacyCompletersDir, 0755), IsNil)
+	c.Assert(os.Symlink(dirs.CompleteShPath(s.base), filepath.Join(dirs.LegacyCompletersDir, "hello-snap.world")), IsNil)
+
+	s.testAddSnapBinariesAndRemove(c)
+}
+
+func (s *binariesTestSuite) TestRemoveWithLegacyCompleters(c *C) {
+	info := snaptest.MockSnap(c, packageHello+"base: "+s.base+"\n", &snap.SideInfo{Revision: snap.R(11)})
+	err := wrappers.AddSnapBinaries(info)
+	c.Assert(err, IsNil)
+
+	// Simulate legacy installation
+	newCompleter := filepath.Join(dirs.CompletersDir, "hello-snap.world")
+	if osutil.FileExists(newCompleter) {
+		c.Assert(os.Remove(newCompleter), IsNil)
+	}
+	c.Assert(os.MkdirAll(dirs.LegacyCompletersDir, 0755), IsNil)
+	legacyCompleter := filepath.Join(dirs.LegacyCompletersDir, "hello-snap.world")
+	c.Assert(os.Symlink(dirs.CompleteShPath(s.base), legacyCompleter), IsNil)
+
+	err = wrappers.RemoveSnapBinaries(info)
+	c.Assert(err, IsNil)
+
+	c.Assert(osutil.IsSymlink(legacyCompleter), Equals, false)
+}
+
 func (s *binariesTestSuite) TestAddSnapBinariesAndRemoveWithExistingCompleters(c *C) {
 	c.Assert(os.MkdirAll(dirs.CompletersDir, 0755), IsNil)
 	if s.base == "core-with-snapd" {
@@ -128,7 +161,9 @@ func (s *binariesTestSuite) testAddSnapBinariesAndRemove(c *C) {
 		c.Check(target, Equals, "/usr/bin/snap", Commentf(bin))
 	}
 
-	if osutil.FileExists(dirs.CompletersDir) {
+	if osutil.FileExists(dirs.CompleteShPath(s.base)) {
+		c.Assert(osutil.IsDirectory(dirs.CompletersDir), Equals, true)
+
 		if completerExisted {
 			// there was a completer there before, so it should _not_ be a symlink to our complete.sh
 			c.Assert(osutil.IsSymlink(completer), Equals, false)
@@ -138,6 +173,9 @@ func (s *binariesTestSuite) testAddSnapBinariesAndRemove(c *C) {
 			c.Check(target, Equals, dirs.CompleteShPath(s.base))
 		}
 	}
+
+	legacyCompleter := filepath.Join(dirs.LegacyCompletersDir, "hello-snap.world")
+	c.Assert(osutil.IsSymlink(legacyCompleter), Equals, false)
 
 	err = wrappers.RemoveSnapBinaries(info)
 	c.Assert(err, IsNil)

@@ -45,7 +45,7 @@ func AddSnapBinaries(s *snap.Info) (err error) {
 	}
 
 	completeSh := dirs.CompleteShPath(s.Base)
-	noCompletion := !osutil.IsWritable(dirs.CompletersDir) || !osutil.FileExists(completeSh)
+	noCompletion := !osutil.FileExists(completeSh)
 	for _, app := range s.Apps {
 		if app.IsService() {
 			continue
@@ -60,10 +60,18 @@ func AddSnapBinaries(s *snap.Info) (err error) {
 		}
 		created = append(created, wrapperPath)
 
+		legacyCompPath := app.LegacyCompleterPath()
+		if dirs.IsCompleteShSymlink(legacyCompPath) {
+			os.Remove(legacyCompPath)
+		}
+
 		if noCompletion || app.Completer == "" {
 			continue
 		}
 		// symlink the completion snippet
+		if err := os.MkdirAll(dirs.CompletersDir, 0755); err != nil {
+			return err
+		}
 		compPath := app.CompleterPath()
 		if err := os.Symlink(completeSh, compPath); err == nil {
 			created = append(created, compPath)
@@ -85,6 +93,10 @@ func RemoveSnapBinaries(s *snap.Info) error {
 		compPath := app.CompleterPath()
 		if dirs.IsCompleteShSymlink(compPath) {
 			os.Remove(compPath)
+		}
+		legacyCompPath := app.LegacyCompleterPath()
+		if dirs.IsCompleteShSymlink(legacyCompPath) {
+			os.Remove(legacyCompPath)
 		}
 	}
 

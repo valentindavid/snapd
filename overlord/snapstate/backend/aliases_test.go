@@ -27,6 +27,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/snapcore/snapd/dirs"
+	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/overlord/snapstate/backend"
 )
 
@@ -52,6 +53,7 @@ func (s *aliasesSuite) SetUpTest(c *C) {
 	err := os.MkdirAll(dirs.SnapBinariesDir, 0755)
 	c.Assert(err, IsNil)
 	c.Assert(os.MkdirAll(dirs.CompletersDir, 0755), IsNil)
+	c.Assert(os.MkdirAll(dirs.LegacyCompletersDir, 0755), IsNil)
 	c.Assert(os.MkdirAll(filepath.Dir(dirs.CompleteShPath(s.base)), 0755), IsNil)
 	c.Assert(ioutil.WriteFile(dirs.CompleteShPath(s.base), nil, 0644), IsNil)
 }
@@ -160,6 +162,25 @@ func (s *aliasesSuite) TestUpdateAliasesAddWithCompleter(c *C) {
 	c.Check(matchingCs, DeepEquals, aliases)
 }
 
+func (s *aliasesSuite) TestUpdateAliasesAddWithLegacyCompleter(c *C) {
+	mkCompleters(c, s.base, "x.bar", "x.foo")
+	aliases := []*backend.Alias{{Name: "foo", Target: "x.foo"}, {Name: "bar", Target: "x.bar"}}
+
+	c.Assert(os.Symlink("foo", filepath.Join(dirs.LegacyCompletersDir, "x.foo")), IsNil)
+	c.Assert(os.Symlink("bar", filepath.Join(dirs.LegacyCompletersDir, "x.bar")), IsNil)
+
+	err := s.be.UpdateAliases(aliases, nil)
+	c.Assert(err, IsNil)
+
+	matchingAs, matchingCs, err := matchingAliases(aliases)
+	c.Assert(err, IsNil)
+	c.Check(matchingAs, DeepEquals, aliases)
+	c.Check(matchingCs, DeepEquals, aliases)
+
+	c.Check(osutil.FileExists(filepath.Join(dirs.LegacyCompletersDir, "x.foo")), Equals, false)
+	c.Check(osutil.FileExists(filepath.Join(dirs.LegacyCompletersDir, "x.bar")), Equals, false)
+}
+
 func (s *aliasesSuite) TestUpdateAliasesAddIdempot(c *C) {
 	aliases := []*backend.Alias{{Name: "foo", Target: "x.foo"}, {Name: "bar", Target: "x.bar"}}
 
@@ -240,6 +261,21 @@ func (s *aliasesSuite) TestUpdateAliasesWithCompleterRemove(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(matchingAs, HasLen, 0)
 	c.Check(matchingCs, HasLen, 0)
+}
+
+func (s *aliasesSuite) TestUpdateAliasesWithLegacyCompleterRemove(c *C) {
+	aliases := []*backend.Alias{{Name: "foo", Target: "x.foo"}, {Name: "bar", Target: "x.bar"}}
+	err := s.be.UpdateAliases(aliases, nil)
+	c.Assert(err, IsNil)
+
+	c.Assert(os.Symlink("foo", filepath.Join(dirs.LegacyCompletersDir, "x.foo")), IsNil)
+	c.Assert(os.Symlink("bar", filepath.Join(dirs.LegacyCompletersDir, "x.bar")), IsNil)
+
+	err = s.be.UpdateAliases(nil, aliases)
+	c.Assert(err, IsNil)
+
+	c.Check(osutil.FileExists(filepath.Join(dirs.LegacyCompletersDir, "x.foo")), Equals, false)
+	c.Check(osutil.FileExists(filepath.Join(dirs.LegacyCompletersDir, "x.bar")), Equals, false)
 }
 
 func (s *aliasesSuite) TestUpdateAliasesRemoveIdempot(c *C) {
