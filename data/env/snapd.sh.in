@@ -20,3 +20,7 @@ if [ -n "${XDG_DATA_DIRS##*${snap_xdg_path}}" ] && [ -n "${XDG_DATA_DIRS##*${sna
     export XDG_DATA_DIRS="${XDG_DATA_DIRS}:${snap_xdg_path}"
 fi
 
+snap_data_path="/var/lib/snapd/share"
+if [ -n "${XDG_DATA_DIRS##*${snap_data_path}}" ] && [ -n "${XDG_DATA_DIRS##*${snap_data_path}:*}" ]; then
+    export XDG_DATA_DIRS="${XDG_DATA_DIRS}:${snap_data_path}"
+fi

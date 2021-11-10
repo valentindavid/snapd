@@ -20,3 +20,9 @@ end
 if not contains $snap_xdg_path (string split : "$XDG_DATA_DIRS")
     set XDG_DATA_DIRS (string join : -- $XDG_DATA_DIRS $snap_xdg_path)
 end
+
+set -ul snap_data_path /var/lib/snapd/share
+
+if not contains $snap_data_path (string split : "$XDG_DATA_DIRS")
+    set XDG_DATA_DIRS (string join : -- $XDG_DATA_DIRS $snap_data_path)
+end

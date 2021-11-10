@@ -59,49 +59,54 @@ execute: |
             # not support user-environment-generators (specifically systemd versions
             # earlier than 233).
             if [ -d /usr/lib/systemd/user-environment-generators ]; then
-                MATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-session-env"
-                MATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-session-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-session-env"
+                MATCH "^PATH=(.*:)${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-session-env"
             fi
         fi
         # Profile should also be correctly set up
         case "$user:$SPREAD_SYSTEM" in
             test-zsh:ubuntu-*|test-zsh:debian-*)
                 # Due to https://bugs.launchpad.net/ubuntu/+source/zsh/+bug/1640514
-                NOMATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-profile-env"
-                NOMATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-profile-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-profile-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/share(:.*)?$' < "${user}-profile-env"
+                NOMATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-profile-env"
                 ;;
             test-fish:ubuntu-16.04*)
                 # fish on 16.04 is just too old to support vendor_conf.d so
                 # XDG_DATA_DIRS is not appended to, but also does not clobber
                 # PATH
-                NOMATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-profile-env"
-                MATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-profile-env"
-                NOMATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-child-env"
-                MATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-child-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-profile-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/share(:.*)?$' < "${user}-profile-env"
+                NOMATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?\$" < "${user}-profile-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-child-env"
+                NOMATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/share(:.*)?$' < "${user}-child-env"
+                NOMATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?\$" < "${user}-child-env"
                 ;;
             test-fish:opensuse-tumbleweed-*)
                 # fish Tumbleweed somehow magically glues the ENV_* from su and
                 # PATH, but fortunately it also displays ENV_ROOTPATH
-                NOMATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-profile-env"
-                MATCH "ENV_ROOTPATH\s+.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-profile-env"
-                MATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-child-env"
-                NOMATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-child-env"
-                MATCH "ENV_ROOTPATH\s+.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-child-env"
+                NOMATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-profile-env"
+                MATCH "^ENV_ROOTPATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-profile-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-child-env"
+                NOMATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-child-env"
+                MATCH "^ENV_ROOTPATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-child-env"
                 ;;
             *)
-                MATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-profile-env"
-                MATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-profile-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-profile-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/share(:.*)?$' < "${user}-profile-env"
+                MATCH "^PATH=(.*:)?${SNAP_MOUNT_DIR}/bin(:.*)?\$" < "${user}-profile-env"
                 # similarly the right paths are set for subprocesses
-                MATCH 'XDG_DATA_DIRS=.*[:]?/var/lib/snapd/desktop[:]?.*' < "${user}-child-env"
-                MATCH "PATH=.*[:]?${SNAP_MOUNT_DIR}/bin[:]?.*" < "${user}-child-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/desktop(:.*)?$' < "${user}-child-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/var/lib/snapd/share(:.*)?$' < "${user}-child-env"
+                MATCH "^PATH=(.*:)${SNAP_MOUNT_DIR}/bin(:.*)?$" < "${user}-child-env"
                 # make sure that XDG_DATA_DIRS contains the default locations as well
-                MATCH 'XDG_DATA_DIRS=.*[:]?/usr/share[:]?.*' < "${user}-profile-env"
+                MATCH '^XDG_DATA_DIRS=(.*:)?/usr/share(:.*)?$' < "${user}-profile-env"
                 if ! os.query is-opensuse-tumbleweed; then
                     # it was observed that on Tumbleweed XDG_DATA_DIRS seems to
                     # have a default value which does not include
                     # /usr/local/share, so apply the check only on remaining
                     # systems
-                    MATCH 'XDG_DATA_DIRS=.*[:]?/usr/local/share[:]?.*' < "${user}-profile-env"
+                    MATCH '^XDG_DATA_DIRS=(.*:)?/usr/local/share(:.*)?$' < "${user}-profile-env"
                 fi
                 ;;
         esac
