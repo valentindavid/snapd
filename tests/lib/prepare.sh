@@ -261,7 +261,13 @@ EOF
     # the service setting may have changed in the service so we need
     # to ensure snapd is reloaded
     systemctl daemon-reload
+
+    # Leave some time for snapd to finish processing hooks
+    sleep 5
     systemctl restart snapd
+    # Snapd might need to run some hooks (prepare-device) which
+    # triggers `tests.invariant cgroup-scopes` false positives
+    sleep 5
 }
 
 prepare_each_classic() {
@@ -277,7 +283,13 @@ EOF
     # the re-exec setting may have changed in the service so we need
     # to ensure snapd is reloaded
     systemctl daemon-reload
+
+    # Leave some time for snapd to finish processing hooks
+    sleep 5
     systemctl restart snapd
+    # Snapd might need to run some hooks (prepare-device) which
+    # triggers `tests.invariant cgroup-scopes` false positives
+    sleep 5
 
     if [ ! -f /etc/systemd/system/snapd.service.d/local.conf ]; then
         echo "/etc/systemd/system/snapd.service.d/local.conf vanished!"
