@@ -214,6 +214,15 @@ update_core_snap_for_classic_reexec() {
     done
 }
 
+flush_changes() {
+    sleep 1
+    local timeout=20
+    while [ "${timeout}" -gt 0  ] && snap changes | grep -q Doing; do
+	sleep 1
+	timeout=$(("${timeout}"-1))
+    done
+}
+
 prepare_memory_limit_override() {
     # set up memory limits for snapd bu default unless explicit requested not to
     # or the system is known to be problematic
@@ -263,11 +272,11 @@ EOF
     systemctl daemon-reload
 
     # Leave some time for snapd to finish processing hooks
-    sleep 5
+    flush_changes
     systemctl restart snapd
     # Snapd might need to run some hooks (prepare-device) which
     # triggers `tests.invariant cgroup-scopes` false positives
-    sleep 5
+    flush_changes
 }
 
 prepare_each_classic() {
@@ -285,11 +294,11 @@ EOF
     systemctl daemon-reload
 
     # Leave some time for snapd to finish processing hooks
-    sleep 5
+    flush_changes
     systemctl restart snapd
     # Snapd might need to run some hooks (prepare-device) which
     # triggers `tests.invariant cgroup-scopes` false positives
-    sleep 5
+    flush_changes
 
     if [ ! -f /etc/systemd/system/snapd.service.d/local.conf ]; then
         echo "/etc/systemd/system/snapd.service.d/local.conf vanished!"
