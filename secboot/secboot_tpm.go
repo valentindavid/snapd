@@ -367,25 +367,30 @@ func ProvisionForCVM(initramfsUbuntuSeedDir string) error {
 // TPM must have already been provisioned. If sealed key already exists at the
 // PCR handle, SealKeys will fail and return an error.
 func SealKeys(keys []SealKeyRequest, params *SealKeysParams) error {
+	fmt.Fprintf(os.Stderr, "AMEPJA\n")
 	numModels := len(params.ModelParams)
 	if numModels < 1 {
 		return fmt.Errorf("at least one set of model-specific parameters is required")
 	}
+	fmt.Fprintf(os.Stderr, "AMEPJB\n")
 
 	tpm, err := sbConnectToDefaultTPM()
 	if err != nil {
 		return fmt.Errorf("cannot connect to TPM: %v", err)
 	}
 	defer tpm.Close()
+	fmt.Fprintf(os.Stderr, "AMEPJC\n")
 	if !isTPMEnabled(tpm) {
 		return fmt.Errorf("TPM device is not enabled")
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEPJD\n")
 	pcrProfile, err := buildPCRProtectionProfile(params.ModelParams)
 	if err != nil {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEPJE\n")
 	pcrHandle := params.PCRPolicyCounterHandle
 	logger.Noticef("sealing with PCR handle %#x", pcrHandle)
 	// Seal the provided keys to the TPM
@@ -397,22 +402,27 @@ func SealKeys(keys []SealKeyRequest, params *SealKeysParams) error {
 
 	sbKeys := make([]*sb_tpm2.SealKeyRequest, 0, len(keys))
 	for i := range keys {
+		fmt.Fprintf(os.Stderr, "AMEPJF\n")
 		sbKeys = append(sbKeys, &sb_tpm2.SealKeyRequest{
 			Key:  keys[i].Key,
 			Path: keys[i].KeyFile,
 		})
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEPJG\n")
 	authKey, err := sbSealKeyToTPMMultiple(tpm, sbKeys, &creationParams)
 	if err != nil {
 		logger.Debugf("seal key error: %v", err)
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "AMEPJH\n")
 	if params.TPMPolicyAuthKeyFile != "" {
 		if err := osutil.AtomicWriteFile(params.TPMPolicyAuthKeyFile, authKey, 0600, 0); err != nil {
+			fmt.Fprintf(os.Stderr, "AMEPJI\n")
 			return fmt.Errorf("cannot write the policy auth key file: %v", err)
 		}
 	}
+	fmt.Fprintf(os.Stderr, "AMEPJJ\n")
 	return nil
 }
 
@@ -476,11 +486,15 @@ func buildPCRProtectionProfile(modelParams []*SealKeyModelParams) (*sb_tpm2.PCRP
 	numModels := len(modelParams)
 	modelPCRProfiles := make([]*sb_tpm2.PCRProtectionProfile, 0, numModels)
 
+	fmt.Fprintf(os.Stderr, "AMEPJDA\n")
+
 	for _, mp := range modelParams {
+		fmt.Fprintf(os.Stderr, "AMEPJDB\n")
 		modelProfile := sb_tpm2.NewPCRProtectionProfile()
 
 		loadSequences, err := buildLoadSequences(mp.EFILoadChains)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "AMEPJDC\n")
 			return nil, fmt.Errorf("cannot build EFI image load sequences: %v", err)
 		}
 
@@ -594,13 +608,17 @@ func buildLoadSequences(chains []*LoadChain) (loadseqs []*sb_efi.ImageLoadEvent,
 	//                                     |-> run kernel try
 
 	for _, chain := range chains {
+		fmt.Fprintf(os.Stderr, "AMEPJDBA\n")
 		// root of load events has source Firmware
 		loadseq, err := chain.loadEvent(sb_efi.Firmware)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "AMEPJDBB\n")
 			return nil, err
 		}
+		fmt.Fprintf(os.Stderr, "AMEPJDBC\n")
 		loadseqs = append(loadseqs, loadseq)
 	}
+	fmt.Fprintf(os.Stderr, "AMEPJDBD\n")
 	return loadseqs, nil
 }
 
@@ -627,17 +645,24 @@ func (lc *LoadChain) loadEvent(source sb_efi.ImageLoadEventSource) (*sb_efi.Imag
 }
 
 func efiImageFromBootFile(b *bootloader.BootFile) (sb_efi.Image, error) {
+	fmt.Fprintf(os.Stderr, "2A\n")
+
 	if b.Snap == "" {
+		fmt.Fprintf(os.Stderr, "2B %s\n", b.Path)
 		if !osutil.FileExists(b.Path) {
+			fmt.Fprintf(os.Stderr, "2C\n")
 			return nil, fmt.Errorf("file %s does not exist", b.Path)
 		}
+		fmt.Fprintf(os.Stderr, "2E\n")
 		return sb_efi.FileImage(b.Path), nil
 	}
 
+	fmt.Fprintf(os.Stderr, "2F %s\n", b.Snap)
 	snapf, err := snapfile.Open(b.Snap)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Fprintf(os.Stderr, "2G\n")
 	return sb_efi.SnapFileImage{
 		Container: snapf,
 		FileName:  b.Path,
@@ -677,21 +702,28 @@ func tpmReleaseResourcesImpl(tpm *sb_tpm2.Connection, handle tpm2.Handle) error 
 // ReleasePCRResourceHandles releases any TPM resources associated with given
 // PCR handles.
 func ReleasePCRResourceHandles(handles ...uint32) error {
+	fmt.Fprintf(os.Stderr, "AMEPA\n")
 	tpm, err := sbConnectToDefaultTPM()
 	if err != nil {
 		err = fmt.Errorf("cannot connect to TPM device: %v", err)
 		return err
 	}
 	defer tpm.Close()
+	fmt.Fprintf(os.Stderr, "AMEPB\n")
 
 	var errs []string
 	for _, handle := range handles {
+		fmt.Fprintf(os.Stderr, "AMEPC\n")
 		logger.Debugf("releasing PCR handle %#x", handle)
 		if err := tpmReleaseResources(tpm, tpm2.Handle(handle)); err != nil {
+			fmt.Fprintf(os.Stderr, "AMEPD\n")
 			errs = append(errs, fmt.Sprintf("handle %#x: %v", handle, err))
 		}
+		fmt.Fprintf(os.Stderr, "AMEPE\n")
 	}
+	fmt.Fprintf(os.Stderr, "AMEPF\n")
 	if errCnt := len(errs); errCnt != 0 {
+		fmt.Fprintf(os.Stderr, "AMEPG\n")
 		return fmt.Errorf("cannot release TPM resources for %v handles:\n%v", errCnt, strings.Join(errs, "\n"))
 	}
 	return nil

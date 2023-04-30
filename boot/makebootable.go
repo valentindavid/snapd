@@ -351,12 +351,14 @@ func copyBootSnap(orig string, dstInfo *snap.Info, dstSnapBlobDir string) error 
 }
 
 func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *TrustedAssetsInstallObserver, makeOpts makeRunnableOptions) error {
+	fmt.Fprintf(os.Stderr, "AA\n")
 	if model.Grade() == asserts.ModelGradeUnset {
 		return fmt.Errorf("internal error: cannot make pre-UC20 system runnable")
 	}
 	if bootWith.RecoverySystemDir != "" {
 		return fmt.Errorf("internal error: RecoverySystemDir unexpectedly set for MakeRunnableSystem")
 	}
+	fmt.Fprintf(os.Stderr, "AB\n")
 
 	// TODO:UC20:
 	// - figure out what to do for uboot gadgets, currently we require them to
@@ -368,6 +370,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 	if err := os.MkdirAll(snapBlobDir, 0755); err != nil {
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "AC\n")
 	for _, origDest := range []struct {
 		orig     string
 		destInfo *snap.Info
@@ -380,11 +383,13 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "AD\n")
 	// replicate the boot assets cache in host's writable
 	if err := CopyBootAssetsCacheToRoot(InstallHostWritableDir(model)); err != nil {
 		return fmt.Errorf("cannot replicate boot assets cache: %v", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "AE\n")
 	var currentTrustedBootAssets bootAssetsMap
 	var currentTrustedRecoveryBootAssets bootAssetsMap
 	if sealer != nil {
@@ -415,6 +420,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		Grade:          string(model.Grade()),
 		ModelSignKeyID: model.SignKeyID(),
 	}
+	fmt.Fprintf(os.Stderr, "AF\n")
 	// Note on classic systems there is no boot base, the system boots
 	// from debs.
 	if !model.Classic() {
@@ -429,6 +435,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		// run partition layout, no /boot mount.
 		NoSlashBoot: true,
 	}
+	fmt.Fprintf(os.Stderr, "AG\n")
 	// the bootloader config may have been installed when the ubuntu-boot
 	// partition was created, but for a trusted assets the bootloader config
 	// will be installed further down; for now identify the run mode
@@ -438,12 +445,14 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		return fmt.Errorf("internal error: cannot identify run system bootloader: %v", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "AH\n")
 	// extract the kernel first and mark kernel_status ready
 	kernelf, err := snapfile.Open(bootWith.KernelPath)
 	if err != nil {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AI\n")
 	err = bl.ExtractKernelAssets(bootWith.Kernel, kernelf)
 	if err != nil {
 		return err
@@ -453,6 +462,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		"kernel_status": "",
 	}
 
+	fmt.Fprintf(os.Stderr, "AJ\n")
 	ebl, ok := bl.(bootloader.ExtractedRunKernelImageBootloader)
 	if ok {
 		// the bootloader supports additional extracted kernel handling
@@ -473,6 +483,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		blVars["snap_kernel"] = bootWith.Kernel.Filename()
 	}
 
+	fmt.Fprintf(os.Stderr, "AK\n")
 	// set the ubuntu-boot bootloader variables before triggering transition to
 	// try and boot from ubuntu-boot (that transition happens when we write
 	// snapd_recovery_mode below)
@@ -480,6 +491,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		return fmt.Errorf("cannot set run system environment: %v", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "AL\n")
 	_, ok = bl.(bootloader.TrustedAssetsBootloader)
 	if ok {
 		// the bootloader can manage its boot config
@@ -516,30 +528,37 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, sealer *Tru
 		return fmt.Errorf("cannot write modeenv: %v", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "AM\n")
 	if sealer != nil {
+		fmt.Fprintf(os.Stderr, "AMA\n")
 		hasHook, err := HasFDESetupHook(bootWith.Kernel)
 		if err != nil {
 			return fmt.Errorf("cannot check for fde-setup hook: %v", err)
 		}
 
+		fmt.Fprintf(os.Stderr, "AMB\n")
 		flags := sealKeyToModeenvFlags{
 			HasFDESetupHook: hasHook,
 			FactoryReset:    makeOpts.AfterDataReset,
 		}
+		fmt.Fprintf(os.Stderr, "AMC %v %s\n", makeOpts.Standalone, snapBlobDir)
 		if makeOpts.Standalone {
 			flags.SnapsDir = snapBlobDir
 		}
+		fmt.Fprintf(os.Stderr, "AMD\n")
 		// seal the encryption key to the parameters specified in modeenv
 		if err := sealKeyToModeenv(sealer.dataEncryptionKey, sealer.saveEncryptionKey, model, modeenv, flags); err != nil {
 			return err
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "AN\n")
 	// so far so good, we managed to install the system, so it can be used
 	// for recovery as well
 	if err := MarkRecoveryCapableSystem(recoverySystemLabel); err != nil {
 		return fmt.Errorf("cannot record %q as a recovery capable system: %v", recoverySystemLabel, err)
 	}
+	fmt.Fprintf(os.Stderr, "AO\n")
 	return nil
 }
 

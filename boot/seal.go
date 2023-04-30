@@ -125,6 +125,7 @@ type sealKeyToModeenvFlags struct {
 // in modeenv.
 // It assumes to be invoked in install mode.
 func sealKeyToModeenvImpl(key, saveKey keys.EncryptionKey, model *asserts.Model, modeenv *Modeenv, flags sealKeyToModeenvFlags) error {
+	fmt.Fprintf(os.Stderr, "AMEA\n")
 	// make sure relevant locations exist
 	for _, p := range []string{
 		InitramfsSeedEncryptionKeyDir,
@@ -132,16 +133,20 @@ func sealKeyToModeenvImpl(key, saveKey keys.EncryptionKey, model *asserts.Model,
 		InstallHostFDEDataDir(model),
 		InstallHostFDESaveDir,
 	} {
+		fmt.Fprintf(os.Stderr, "AMEB\n")
 		// XXX: should that be 0700 ?
 		if err := os.MkdirAll(p, 0755); err != nil {
 			return err
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEC\n")
 	if flags.HasFDESetupHook {
+		fmt.Fprintf(os.Stderr, "AMED\n")
 		return sealKeyToModeenvUsingFDESetupHook(key, saveKey, model, modeenv, flags)
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEE\n")
 	return sealKeyToModeenvUsingSecboot(key, saveKey, model, modeenv, flags)
 }
 
@@ -208,6 +213,7 @@ func sealKeyToModeenvUsingFDESetupHook(key, saveKey keys.EncryptionKey, model *a
 }
 
 func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *asserts.Model, modeenv *Modeenv, flags sealKeyToModeenvFlags) error {
+	fmt.Fprintf(os.Stderr, "AMEF\n")
 	// build the recovery mode boot chain
 	rbl, err := bootloader.Find(InitramfsUbuntuSeedDir, &bootloader.Options{
 		Role: bootloader.RoleRecovery,
@@ -215,11 +221,13 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 	if err != nil {
 		return fmt.Errorf("cannot find the recovery bootloader: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "AMEG\n")
 	tbl, ok := rbl.(bootloader.TrustedAssetsBootloader)
 	if !ok {
 		// TODO:UC20: later the exact kind of bootloaders we expect here might change
 		return fmt.Errorf("internal error: cannot seal keys without a trusted assets bootloader")
 	}
+	fmt.Fprintf(os.Stderr, "AMEH\n")
 
 	includeTryModel := false
 	systems := []string{modeenv.RecoverySystem}
@@ -228,12 +236,14 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		// tested, hence allow both recover and factory reset modes
 		modeenv.RecoverySystem: {ModeRecover, ModeFactoryReset},
 	}
+	fmt.Fprintf(os.Stderr, "AMEI\n")
 	recoveryBootChains, err := recoveryBootChainsForSystems(systems, modes, tbl, modeenv, includeTryModel)
 	if err != nil {
 		return fmt.Errorf("cannot compose recovery boot chains: %v", err)
 	}
 	logger.Debugf("recovery bootchain:\n%+v", recoveryBootChains)
 
+	fmt.Fprintf(os.Stderr, "AMEJ\n")
 	// build the run mode boot chains
 	bl, err := bootloader.Find(InitramfsUbuntuBootDir, &bootloader.Options{
 		Role:        bootloader.RoleRunMode,
@@ -242,6 +252,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 	if err != nil {
 		return fmt.Errorf("cannot find the bootloader: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "AMEK\n")
 
 	// kernel command lines are filled during install
 	cmdlines := modeenv.CurrentKernelCommandLines
@@ -249,6 +260,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 	if err != nil {
 		return fmt.Errorf("cannot compose run mode boot chains: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "AMEL\n")
 	logger.Debugf("run mode bootchain:\n%+v", runModeBootChains)
 
 	pbc := toPredictableBootChains(append(runModeBootChains, recoveryBootChains...))
@@ -257,6 +269,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		bootloader.RoleRecovery: rbl.Name(),
 		bootloader.RoleRunMode:  bl.Name(),
 	}
+	fmt.Fprintf(os.Stderr, "AMEM\n")
 
 	// the boot chains we seal the fallback object to
 	rpbc := toPredictableBootChains(recoveryBootChains)
@@ -266,6 +279,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 	if err != nil {
 		return fmt.Errorf("cannot generate key for signing dynamic authorization policies: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "AMEN\n")
 
 	runObjectKeyPCRHandle := uint32(secboot.RunObjectPCRPolicyCounterHandle)
 	fallbackObjectKeyPCRHandle := uint32(secboot.FallbackObjectPCRPolicyCounterHandle)
@@ -289,6 +303,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEO\n")
 	// we are preparing a new system, hence the TPM needs to be provisioned
 	lockoutAuthFile := device.TpmLockoutAuthUnder(InstallHostFDESaveDir)
 	tpmProvisionMode := secboot.TPMProvisionFull
@@ -299,16 +314,19 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEP\n")
 	if flags.FactoryReset {
 		// it is possible that we are sealing the keys again, after a
 		// previously running factory reset was interrupted by a reboot,
 		// in which case the PCR handles of the new sealed keys might
 		// have already been used
+		fmt.Fprintf(os.Stderr, "AMEP2\n")
 		if err := secbootReleasePCRResourceHandles(runObjectKeyPCRHandle, fallbackObjectKeyPCRHandle); err != nil {
 			return err
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEP3\n")
 	// TODO: refactor sealing functions to take a struct instead of so many
 	// parameters
 	err = sealRunObjectKeys(key, pbc, authKey, roleToBlName, runObjectKeyPCRHandle)
@@ -316,6 +334,7 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMEQ\n")
 	err = sealFallbackObjectKeys(key, saveKey, rpbc, authKey, roleToBlName, flags.FactoryReset,
 		fallbackObjectKeyPCRHandle)
 	if err != nil {
@@ -326,16 +345,19 @@ func sealKeyToModeenvUsingSecboot(key, saveKey keys.EncryptionKey, model *assert
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMER\n")
 	installBootChainsPath := bootChainsFileUnder(InstallHostWritableDir(model))
 	if err := writeBootChains(pbc, installBootChainsPath, 0); err != nil {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMES\n")
 	installRecoveryBootChainsPath := recoveryBootChainsFileUnder(InstallHostWritableDir(model))
 	if err := writeBootChains(rpbc, installRecoveryBootChainsPath, 0); err != nil {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "AMET\n")
 	return nil
 }
 
@@ -351,10 +373,12 @@ func usesAltPCRHandles() (bool, error) {
 }
 
 func sealRunObjectKeys(key keys.EncryptionKey, pbc predictableBootChains, authKey *ecdsa.PrivateKey, roleToBlName map[bootloader.Role]string, pcrHandle uint32) error {
+	fmt.Fprintf(os.Stderr, "AMEPH\n")
 	modelParams, err := sealKeyModelParams(pbc, roleToBlName)
 	if err != nil {
 		return fmt.Errorf("cannot prepare for key sealing: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "AMEPI\n")
 
 	sealKeyParams := &secboot.SealKeysParams{
 		ModelParams:            modelParams,
@@ -370,6 +394,7 @@ func sealRunObjectKeys(key keys.EncryptionKey, pbc predictableBootChains, authKe
 	// Furthermore, the run object key is stored on ubuntu-boot so that we do not
 	// need to continually write/read keys from ubuntu-seed.
 	if err := secbootSealKeys(runKeySealRequests(key), sealKeyParams); err != nil {
+		fmt.Fprintf(os.Stderr, "AMEPJ\n")
 		return fmt.Errorf("cannot seal the encryption keys: %v", err)
 	}
 
@@ -409,20 +434,27 @@ var resealKeyToModeenv = resealKeyToModeenvImpl
 // transient/in-memory information with the risk that successive
 // reseals during in-progress operations produce diverging outcomes.
 func resealKeyToModeenvImpl(rootdir string, modeenv *Modeenv, expectReseal bool) error {
+	fmt.Fprintf(os.Stderr, "AME\n")
 	method, err := device.SealedKeysMethod(rootdir)
+	fmt.Fprintf(os.Stderr, "AMF\n")
 	if err == device.ErrNoSealedKeys {
 		// nothing to do
 		return nil
 	}
+	fmt.Fprintf(os.Stderr, "AMG\n")
 	if err != nil {
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "AMH\n")
 	switch method {
 	case device.SealingMethodFDESetupHook:
+		fmt.Fprintf(os.Stderr, "AMI\n")
 		return resealKeyToModeenvUsingFDESetupHook(rootdir, modeenv, expectReseal)
 	case device.SealingMethodTPM, device.SealingMethodLegacyTPM:
+		fmt.Fprintf(os.Stderr, "AMJ\n")
 		return resealKeyToModeenvSecboot(rootdir, modeenv, expectReseal)
 	default:
+		fmt.Fprintf(os.Stderr, "AMK\n")
 		return fmt.Errorf("unknown key sealing method: %q", method)
 	}
 }
@@ -649,18 +681,37 @@ func modesForSystems(modeenv *Modeenv) map[string][]string {
 // TODO:UC20: this needs to take more than one model to accommodate the remodel
 // scenario
 func recoveryBootChainsForSystems(systems []string, modesForSystems map[string][]string, trbl bootloader.TrustedAssetsBootloader, modeenv *Modeenv, includeTryModel bool) (chains []bootChain, err error) {
+	fmt.Fprintf(os.Stderr, "AMEIA\n")
 	chainsForModel := func(model secboot.ModelForSealing) error {
+		fmt.Fprintf(os.Stderr, "AMEIF\n")
 		modelID := modelUniqueID(model)
 		for _, system := range systems {
+			fmt.Fprintf(os.Stderr, "AMEIG %s %s\n", dirs.SnapSeedDir, system)
 			// get kernel and gadget information from seed
 			perf := timings.New(nil)
-			seedSystemModel, snaps, err := seedReadSystemEssential(dirs.SnapSeedDir, system, []snap.Type{snap.TypeKernel, snap.TypeGadget}, perf)
+			seedDir := dirs.SnapSeedDir
+			mounted, err := osutil.IsMounted(seedDir)
+			fmt.Fprintf(os.Stderr, "AMEIH1 %s %v\n", mounted, err)
+			if err == nil && !mounted {
+				initrdMountDir := filepath.Join(InitramfsRunMntDir, "ubuntu-seed")
+				initrdMounted, err := osutil.IsMounted(initrdMountDir)
+				fmt.Fprintf(os.Stderr, "AMEIH2 %s %v %s\n", initrdMounted, err, initrdMountDir)
+				if err == nil && initrdMounted {
+					fmt.Fprintf(os.Stderr, "AMEIH3\n")
+					seedDir = initrdMountDir
+				}
+			}
+			fmt.Fprintf(os.Stderr, "AMEIH4 %s\n", seedDir)
+			seedSystemModel, snaps, err := seedReadSystemEssential(seedDir, system, []snap.Type{snap.TypeKernel, snap.TypeGadget}, perf)
+			fmt.Fprintf(os.Stderr, "AMEIH\n")
 			if err != nil {
 				return fmt.Errorf("cannot read system %q seed: %v", system, err)
 			}
+			fmt.Fprintf(os.Stderr, "AMEII\n")
 			if len(snaps) != 2 {
 				return fmt.Errorf("cannot obtain recovery system snaps")
 			}
+			fmt.Fprintf(os.Stderr, "AMEIJ\n")
 			seedModelID := modelUniqueID(seedSystemModel)
 			// TODO: the generated unique ID contains the model's
 			// sign key ID, consider relaxing this to ignore the key
@@ -672,17 +723,21 @@ func recoveryBootChainsForSystems(systems []string, modesForSystems map[string][
 				// is still currently tracked in modeenv
 				continue
 			}
+			fmt.Fprintf(os.Stderr, "AMEIK\n")
 			seedKernel, seedGadget := snaps[0], snaps[1]
 			if snaps[0].EssentialType == snap.TypeGadget {
 				seedKernel, seedGadget = seedGadget, seedKernel
 			}
+			fmt.Fprintf(os.Stderr, "AMEIL\n")
 
 			var cmdlines []string
 			modes, ok := modesForSystems[system]
 			if !ok {
+				fmt.Fprintf(os.Stderr, "AMEIM\n")
 				return fmt.Errorf("internal error: no modes for system %q", system)
 			}
 			for _, mode := range modes {
+				fmt.Fprintf(os.Stderr, "AMEIN\n")
 				// get the command line for this mode
 				cmdline, err := composeCommandLine(currentEdition, mode, system, seedGadget.Path)
 				if err != nil {
@@ -691,21 +746,25 @@ func recoveryBootChainsForSystems(systems []string, modesForSystems map[string][
 				cmdlines = append(cmdlines, cmdline)
 			}
 
+			fmt.Fprintf(os.Stderr, "AMEIO\n")
 			var kernelRev string
 			if seedKernel.SideInfo.Revision.Store() {
 				kernelRev = seedKernel.SideInfo.Revision.String()
 			}
 
+			fmt.Fprintf(os.Stderr, "AMEIP %s\n", seedKernel.Path)
 			recoveryBootChain, err := trbl.RecoveryBootChain(seedKernel.Path)
 			if err != nil {
 				return err
 			}
 
+			fmt.Fprintf(os.Stderr, "AMEIQ\n")
 			// get asset chains
 			assetChain, kbf, err := buildBootAssets(recoveryBootChain, modeenv)
 			if err != nil {
 				return err
 			}
+			fmt.Fprintf(os.Stderr, "AMEIR\n")
 
 			chains = append(chains, bootChain{
 				BrandID: model.BrandID(),
@@ -727,12 +786,16 @@ func recoveryBootChainsForSystems(systems []string, modesForSystems map[string][
 	if err := chainsForModel(modeenv.ModelForSealing()); err != nil {
 		return nil, err
 	}
+	fmt.Fprintf(os.Stderr, "AMEIB\n")
 
 	if modeenv.TryModel != "" && includeTryModel {
+		fmt.Fprintf(os.Stderr, "AMEIC\n")
 		if err := chainsForModel(modeenv.TryModelForSealing()); err != nil {
 			return nil, err
 		}
+		fmt.Fprintf(os.Stderr, "AMEID\n")
 	}
+	fmt.Fprintf(os.Stderr, "AMEIE\n")
 
 	return chains, nil
 }
@@ -752,10 +815,13 @@ func runModeBootChains(rbl, bl bootloader.Bootloader, modeenv *Modeenv, cmdlines
 			}
 			var kernelPath string
 			if runSnapsDir == "" {
+				fmt.Fprintf(os.Stderr, "CA\n")
 				kernelPath = info.MountFile()
 			} else {
+				fmt.Fprintf(os.Stderr, "CB\n")
 				kernelPath = filepath.Join(runSnapsDir, info.Filename())
 			}
+			fmt.Fprintf(os.Stderr, "Other kernel path %s\n", kernelPath)
 			runModeBootChain, err := tbl.BootChain(bl, kernelPath)
 			if err != nil {
 				return err

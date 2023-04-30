@@ -527,6 +527,7 @@ func (g *grub) RecoveryBootChain(kernelPath string) ([]BootFile, error) {
 	for _, ta := range assets {
 		chain = append(chain, NewBootFile("", ta, RoleRecovery))
 	}
+	fmt.Fprintf(os.Stderr, "NewBootFile A\n")
 	// add recovery kernel to the recovery chain
 	chain = append(chain, NewBootFile(kernelPath, "kernel.efi", RoleRecovery))
 
@@ -561,6 +562,7 @@ func (g *grub) BootChain(runBl Bootloader, kernelPath string) ([]BootFile, error
 		chain = append(chain, NewBootFile("", ta, RoleRunMode))
 	}
 	// add kernel to the boot chain
+	fmt.Fprintf(os.Stderr, "NewBootFile B\n")
 	chain = append(chain, NewBootFile(kernelPath, "kernel.efi", RoleRunMode))
 
 	return chain, nil

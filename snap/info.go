@@ -1292,10 +1292,14 @@ var SanitizePlugsSlots = func(snapInfo *Info) {
 	panic("SanitizePlugsSlots function not set")
 }
 
+func ReadInfo(name string, si *SideInfo) (*Info, error) {
+	return ReadInfoFromMountPoint(name, MountDir(name, si.Revision), MountFile(name, si.Revision), si)
+}
+
 // ReadInfo reads the snap information for the installed snap with the given
 // name and given side-info.
-func ReadInfo(name string, si *SideInfo) (*Info, error) {
-	snapYamlFn := filepath.Join(MountDir(name, si.Revision), "meta", "snap.yaml")
+func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*Info, error) {
+	snapYamlFn := filepath.Join(mountPoint, "meta", "snap.yaml")
 	meta, err := ioutil.ReadFile(snapYamlFn)
 	if os.IsNotExist(err) {
 		return nil, &NotFoundError{Snap: name, Revision: si.Revision, Path: snapYamlFn}
@@ -1320,7 +1324,6 @@ func ReadInfo(name string, si *SideInfo) (*Info, error) {
 
 	bindImplicitHooks(info, strk)
 
-	mountFile := MountFile(name, si.Revision)
 	st, err := os.Lstat(mountFile)
 	if os.IsNotExist(err) {
 		// This can happen when "snap try" mode snap is moved around. The mount
