@@ -981,7 +981,7 @@ setup_reflash_magic() {
     elif os.query is-core24; then
         core_name="core24"
         # TODO: revert this once snaps are ready in target channel
-        KERNEL_CHANNEL=edge
+        KERNEL_CHANNEL=beta
         GADGET_CHANNEL=edge
     fi
     # XXX: we get "error: too early for operation, device not yet
