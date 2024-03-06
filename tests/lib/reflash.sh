@@ -37,21 +37,27 @@ mount -t tmpfs -o exec,size=2G none /run/initramfs
 
 cp -T "${1}" /run/initramfs/image.gz
 
-/usr/lib/dracut/dracut-install --ldd -D/run/initramfs -a systemctl dd /usr/lib/systemd/systemd-shutdown
+for try in /usr/lib/systemd/systemd-shutdown /lib/systemd/systemd-shutdown; do
+    if [ -x "${try}" ]; then
+        systemd_shutdown="${try}"
+    fi
+done
+
+/usr/lib/dracut/dracut-install --ldd -D/run/initramfs -a systemctl dd "${systemd_shutdown}"
 /usr/lib/dracut/dracut-install -D/run/initramfs /usr/lib/initramfs-tools/bin/busybox /bin/busybox
 
 ln -s busybox /run/initramfs/bin/sh
 ln -s busybox /run/initramfs/bin/gunzip
 
 if [ -b /dev/vda ]; then
-  DISK=/dev/vda
+    DISK=/dev/vda
 elif [ -b /dev/sda ]; then
-  DISK=/dev/sda
+    DISK=/dev/sda
 elif [ -b /dev/nvme0n1 ]; then
-  DISK=/dev/nvme0n1
+    DISK=/dev/nvme0n1
 else
-  echo "Cannot find disk" 2>&1
-  exit 1
+    echo "Cannot find disk" 2>&1
+    exit 1
 fi
 
 cat <<EOF >/run/initramfs/shutdown
@@ -59,7 +65,9 @@ cat <<EOF >/run/initramfs/shutdown
 
 echo "SHUTTING DOWN"
 
-set -eux
+set -eu
+
+umount -l /oldroot
 
 gunzip -c /image.gz | dd of='${DISK}' bs=32M
 
