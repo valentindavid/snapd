@@ -29,7 +29,7 @@
 
 set -eux
 
-DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends dracut-core busybox-initramfs
+DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends dracut-core busybox-initramfs efibootmgr
 
 [ -d /run/initramfs ] || mkdir -p /run/initramfs
 
@@ -43,7 +43,7 @@ for try in /usr/lib/systemd/systemd-shutdown /lib/systemd/systemd-shutdown; do
     fi
 done
 
-/usr/lib/dracut/dracut-install --ldd -D/run/initramfs -a systemctl dd "${systemd_shutdown}"
+/usr/lib/dracut/dracut-install --ldd -D/run/initramfs -a systemctl dd efibootmgr blockdev blkid "${systemd_shutdown}"
 /usr/lib/dracut/dracut-install -D/run/initramfs /usr/lib/initramfs-tools/bin/busybox /bin/busybox
 
 ln -s busybox /run/initramfs/bin/sh
@@ -70,6 +70,15 @@ set -eu
 umount -l /oldroot
 
 gunzip -c /image.gz | dd of='${DISK}' bs=32M
+
+blockdev --rereadpt '${DISK}'
+
+part_dev=\$(blkid --match-token PARTLABEL=ubuntu-seed -l -o device)
+part_dev="\${part_dev#/dev/}"
+PART="\$(cat /sys/class/block/\${part_dev}/partition)"
+
+efibootmgr --delete-bootorder
+efibootmgr --create --disk '${DISK}' --part "\${PART}" --loader '\\EFI\\boot\\bootx64.efi' --label "Default loader"
 
 exec /usr/lib/systemd/systemd-shutdown "\${@}"
 EOF
