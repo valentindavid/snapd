@@ -71,10 +71,10 @@ type SealKeyRequest struct {
 	BootstrappedContainer BootstrappedContainer
 	// The key name; identical keys should have identical names
 	KeyName string
-
+	// The name of the slot where they key will be saved.
 	SlotName string
-	// The path to store the sealed key file. The same Key/KeyName
-	// can be stored under multiple KeyFile names for safety.
+	// The file to store the key data. If empty, the key data will
+	// be saved to the token.
 	KeyFile string
 }
 
@@ -123,17 +123,17 @@ type SealKeysParams struct {
 	PrimaryKey []byte
 	// The handle at which to create a NV index for dynamic authorization policy revocation support
 	PCRPolicyCounterHandle uint32
-	// The path to the authorization policy update key file (only relevant for TPM,
-	// if empty the key will not be saved)
-	TPMPolicyAuthKeyFile string
 }
 
 type SealKeysWithFDESetupHookParams struct {
 	// Initial model to bind sealed keys to.
 	Model ModelForSealing
-	// The path to the aux key file (if empty the key will not be
-	// saved)
-	AuxKeyFile string
+}
+
+type KeyFileOrSlotName struct {
+	KeyFile    string
+	DevicePath string
+	SlotName   string
 }
 
 // SerializedPCRProfile wraps a serialized PCR profile which is treated as an
@@ -144,7 +144,7 @@ type ResealKeysParams struct {
 	// The snap model parameters
 	PCRProfile SerializedPCRProfile
 	// The path to the sealed key files
-	KeyFiles []string
+	Keys []KeyFileOrSlotName
 	// The path to the authorization policy update key file (only relevant for TPM)
 	TPMPolicyAuthKeyFile string
 }
