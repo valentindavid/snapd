@@ -21,6 +21,7 @@ package backend
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/snapcore/snapd/boot"
 	"github.com/snapcore/snapd/bootloader"
