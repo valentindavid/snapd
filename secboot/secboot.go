@@ -123,6 +123,9 @@ type SealKeysParams struct {
 	PrimaryKey []byte
 	// The handle at which to create a NV index for dynamic authorization policy revocation support
 	PCRPolicyCounterHandle uint32
+	// The path to the authorization policy update key file (only relevant for TPM,
+	// if empty the key will not be saved)
+	TPMPolicyAuthKeyFile string
 }
 
 type SealKeysWithFDESetupHookParams struct {

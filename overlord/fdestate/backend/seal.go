@@ -101,6 +101,7 @@ func sealRunObjectKeys(key secboot.BootstrappedContainer, pbc boot.PredictableBo
 	sealKeyParams := &secboot.SealKeysParams{
 		ModelParams:            modelParams,
 		PrimaryKey:             nil,
+		TPMPolicyAuthKeyFile:   filepath.Join(boot.InstallHostFDESaveDir, "tpm-policy-auth-key"),
 		PCRPolicyCounterHandle: pcrHandle,
 	}
 
