@@ -1687,8 +1687,8 @@ func (s *secbootSuite) testSealKeysWithFDESetupHookHappy(c *C, useKeyFiles bool)
 	containerA := secboot.CreateMockBootstrappedContainer()
 	containerB := secboot.CreateMockBootstrappedContainer()
 	myKeys := []secboot.SealKeyRequest{
-		{BootstrappedContainer: containerA, KeyName: "key1"},
-		{BootstrappedContainer: containerB, KeyName: "key2"},
+		{BootstrappedContainer: containerA, KeyName: "key1", SlotName: "foo1"},
+		{BootstrappedContainer: containerB, KeyName: "key2", SlotName: "foo2"},
 	}
 	tmpDir := c.MkDir()
 	if useKeyFiles {
@@ -1722,12 +1722,12 @@ func (s *secbootSuite) testSealKeysWithFDESetupHookHappy(c *C, useKeyFiles bool)
 	}
 }
 
-func (s *secbootSuite) testSealKeysWithFDESetupHookHappyKeyFiles(c *C) {
+func (s *secbootSuite) TestSealKeysWithFDESetupHookHappyKeyFiles(c *C) {
 	const useKeyFiles = true
 	s.testSealKeysWithFDESetupHookHappy(c, useKeyFiles)
 }
 
-func (s *secbootSuite) testSealKeysWithFDESetupHookHappyTokens(c *C) {
+func (s *secbootSuite) TestSealKeysWithFDESetupHookHappyTokens(c *C) {
 	const useKeyFiles = false
 	s.testSealKeysWithFDESetupHookHappy(c, useKeyFiles)
 }
