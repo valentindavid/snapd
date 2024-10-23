@@ -351,3 +351,7 @@ func MockNewLUKS2KeyDataWriter(f func(devicePath string, name string) (KeyDataWr
 		newLUKS2KeyDataWriter = old
 	}
 }
+
+type DefaultKeyLoader = defaultKeyLoader
+
+var ReadKeyFile = readKeyFile
