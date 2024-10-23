@@ -486,9 +486,6 @@ func ResealKeys(params *ResealKeysParams) error {
 		return fmt.Errorf("cannot read the policy auth key file %s: %w", params.TPMPolicyAuthKeyFile, err)
 	}
 
-	hasOldObject := false
-	hasNewData := false
-
 	keyDatas := make([]*sb.KeyData, 0, numSealedKeyObjects)
 	sealedKeyObjects := make([]*sb_tpm2.SealedKeyObject, 0, numSealedKeyObjects)
 	for _, keyfile := range params.KeyFiles {
@@ -499,19 +496,23 @@ func ResealKeys(params *ResealKeysParams) error {
 			return fmt.Errorf("cannot read key file %s: %w", keyfile, err)
 		}
 		if loadedKey.SealedKeyObject != nil {
-			hasOldObject = true
 			sealedKeyObjects = append(sealedKeyObjects, loadedKey.SealedKeyObject)
 		} else if loadedKey.KeyData != nil {
-			hasNewData = true
+			// Note the "else", if we had an old sealed
+			// key object, then the key data is a work
+			// around, so we ignore it.
 			keyDatas = append(keyDatas, loadedKey.KeyData)
 		}
 	}
 
-	if hasOldObject && hasNewData {
+	hasOldSealedKeyObjects := len(sealedKeyObjects) != 0
+	hasKeyDatas := len(keyDatas) != 0
+
+	if hasOldSealedKeyObjects && hasKeyDatas {
 		return fmt.Errorf("key files are different formats")
 	}
 
-	if hasOldObject {
+	if hasOldSealedKeyObjects {
 		if err := sbUpdateKeyPCRProtectionPolicyMultiple(tpm, sealedKeyObjects, authKey, &pcrProfile); err != nil {
 			return fmt.Errorf("cannot update legacy PCR protection policy: %w", err)
 		}
