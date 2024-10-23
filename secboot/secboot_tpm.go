@@ -241,13 +241,13 @@ func newAuthRequestor() (sb.AuthRequestor, error) {
 type keyLoader interface {
 	LoadKeyData(kd *sb.KeyData)
 	LoadSealedKeyObject(sko *sb_tpm2.SealedKeyObject)
-	LoadSealedKeyV1(sk []byte)
+	LoadFDEHookKeyV1(sk []byte)
 }
 
 type defaultKeyLoader struct {
 	KeyData         *sb.KeyData
 	SealedKeyObject *sb_tpm2.SealedKeyObject
-	SealedKeyV1     []byte
+	FDEHookKeyV1    []byte
 }
 
 func (dkl *defaultKeyLoader) LoadKeyData(kd *sb.KeyData) {
@@ -258,8 +258,8 @@ func (dkl *defaultKeyLoader) LoadSealedKeyObject(sko *sb_tpm2.SealedKeyObject) {
 	dkl.SealedKeyObject = sko
 }
 
-func (dkl *defaultKeyLoader) LoadSealedKeyV1(sk []byte) {
-	dkl.SealedKeyV1 = sk
+func (dkl *defaultKeyLoader) LoadFDEHookKeyV1(sk []byte) {
+	dkl.FDEHookKeyV1 = sk
 }
 
 // TODO: consider moving this to secboot
@@ -286,7 +286,7 @@ func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error
 			if err != nil {
 				return nil
 			}
-			kl.LoadSealedKeyV1(sealedKey)
+			kl.LoadFDEHookKeyV1(sealedKey)
 			return nil
 		}
 
