@@ -265,9 +265,6 @@ func (dkl *defaultKeyLoader) LoadFDEHookKeyV1(sk []byte) {
 // TODO: consider moving this to secboot
 func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error {
 	f, err := os.Open(keyfile)
-	if os.IsNotExist(err) {
-		return err
-	}
 	if err != nil {
 		return err
 	}
