@@ -287,16 +287,22 @@ func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error
 		return err
 	}
 
-	if oldSealedKey {
-		if hintExpectFDEHook {
-			sealedKey, err := os.ReadFile(keyfile)
-			if err != nil {
-				return nil
-			}
-			kl.LoadFDEHookKeyV1(sealedKey)
+	switch {
+	case oldSealedKey && hintExpectFDEHook:
+		// FDE hook key v1
+		//
+		// It has the same magic header has sealed key object,
+		// but there is no version information. Thus we need
+		// to use a hint we are using FDE hooks.
+		sealedKey, err := os.ReadFile(keyfile)
+		if err != nil {
 			return nil
 		}
+		kl.LoadFDEHookKeyV1(sealedKey)
+		return nil
 
+	case oldSealedKey && !hintExpectFDEHook:
+		// TPM sealed object
 		sealedObject, err := sbReadSealedKeyObjectFromFile(keyfile)
 		if err != nil {
 			return fmt.Errorf("cannot read key object: %v", err)
@@ -308,7 +314,8 @@ func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error
 		kl.LoadKeyData(keyData)
 		kl.LoadSealedKeyObject(sealedObject)
 		return nil
-	} else {
+
+	default:
 		reader, err := sbNewFileKeyDataReader(keyfile)
 		if err != nil {
 			return fmt.Errorf("cannot open key data: %v", err)
