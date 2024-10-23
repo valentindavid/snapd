@@ -262,11 +262,10 @@ func (dkl *defaultKeyLoader) LoadFDEHookKeyV1(sk []byte) {
 	dkl.FDEHookKeyV1 = sk
 }
 
-// TODO: consider moving this to secboot
-func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error {
+func hasOldSealedKeyPrefix(keyfile string) (bool, error) {
 	f, err := os.Open(keyfile)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer f.Close()
 
@@ -275,9 +274,20 @@ func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error
 	buf := make([]byte, len(rawPrefix))
 	l, err := io.ReadFull(f, buf)
 	if err != nil && err != io.ErrUnexpectedEOF {
+		return false, err
+	}
+
+	return l == len(rawPrefix) && bytes.HasPrefix(buf, rawPrefix), nil
+}
+
+// TODO: consider moving this to secboot
+func readKeyFileImpl(keyfile string, kl keyLoader, hintExpectFDEHook bool) error {
+	oldSealedKey, err := hasOldSealedKeyPrefix(keyfile)
+	if err != nil {
 		return err
 	}
-	if l == len(rawPrefix) && bytes.HasPrefix(buf, rawPrefix) {
+
+	if oldSealedKey {
 		if hintExpectFDEHook {
 			sealedKey, err := os.ReadFile(keyfile)
 			if err != nil {
