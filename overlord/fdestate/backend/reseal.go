@@ -152,7 +152,7 @@ func resealRunObjectKeys(updateState StateUpdater, pbc boot.PredictableBootChain
 	// list all the key files to reseal
 	keys := []secboot.KeyFileOrSlotName{
 		{
-			DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+			DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 			SlotName:   "default",
 			KeyFile:    device.DataSealedKeyUnder(boot.InitramfsBootEncryptionKeyDir),
 		},
@@ -202,12 +202,12 @@ func resealFallbackObjectKeys(updateState StateUpdater, pbc boot.PredictableBoot
 	// list all the key files to reseal
 	keys := []secboot.KeyFileOrSlotName{
 		{
-			DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+			DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 			SlotName:   "default-fallback",
 			KeyFile:    device.FallbackDataSealedKeyUnder(boot.InitramfsSeedEncryptionKeyDir),
 		},
 		{
-			DevicePath: "/dev/disk/by-partlabel/ubuntu-save-enc",
+			DevicePath: "/dev/disk/by-partlabel/ubuntu-save",
 			SlotName:   "default-fallback",
 			KeyFile:    device.FallbackSaveSealedKeyUnder(boot.InitramfsSeedEncryptionKeyDir),
 		},

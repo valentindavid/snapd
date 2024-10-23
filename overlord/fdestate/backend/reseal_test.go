@@ -309,7 +309,7 @@ func (s *resealTestSuite) TestTPMResealHappy(c *C) {
 			// Resealing the run+recover key for data partition
 			c.Check(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-boot/device/fde/ubuntu-data.sealed-key"),
 				},
@@ -318,12 +318,12 @@ func (s *resealTestSuite) TestTPMResealHappy(c *C) {
 			// Resealing the recovery key for both data and save partitions
 			c.Check(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-data.recovery.sealed-key"),
 				},
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-save-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-save",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-save.recovery.sealed-key"),
 				},
@@ -595,7 +595,7 @@ func (s *resealTestSuite) TestResealKeyForBootchainsWithSystemFallback(c *C) {
 			checkRunParams := func() {
 				c.Check(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 					{
-						DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+						DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 						SlotName:   "default",
 						KeyFile:    filepath.Join(boot.InitramfsBootEncryptionKeyDir, "ubuntu-data.sealed-key"),
 					},
@@ -605,12 +605,12 @@ func (s *resealTestSuite) TestResealKeyForBootchainsWithSystemFallback(c *C) {
 			checkRecoveryParams := func() {
 				c.Check(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 					{
-						DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+						DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 						SlotName:   "default-fallback",
 						KeyFile:    filepath.Join(boot.InitramfsSeedEncryptionKeyDir, "ubuntu-data.recovery.sealed-key"),
 					},
 					{
-						DevicePath: "/dev/disk/by-partlabel/ubuntu-save-enc",
+						DevicePath: "/dev/disk/by-partlabel/ubuntu-save",
 						SlotName:   "default-fallback",
 						KeyFile:    filepath.Join(boot.InitramfsSeedEncryptionKeyDir, "ubuntu-save.recovery.sealed-key"),
 					},
@@ -1047,7 +1047,7 @@ func (s *resealTestSuite) TestResealKeyForBootchainsRecoveryKeysForGoodSystemsOn
 		case 1: // run key
 			c.Assert(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default",
 					KeyFile:    filepath.Join(boot.InitramfsBootEncryptionKeyDir, "ubuntu-data.sealed-key"),
 				},
@@ -1055,12 +1055,12 @@ func (s *resealTestSuite) TestResealKeyForBootchainsRecoveryKeysForGoodSystemsOn
 		case 2: // recovery keys
 			c.Check(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-data.recovery.sealed-key"),
 				},
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-save-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-save",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-save.recovery.sealed-key"),
 				},
@@ -1338,7 +1338,7 @@ func (s *resealTestSuite) testResealKeyForBootchainsWithTryModel(c *C, shimId, g
 		case 1: // run key
 			c.Assert(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default",
 					KeyFile:    filepath.Join(boot.InitramfsBootEncryptionKeyDir, "ubuntu-data.sealed-key"),
 				},
@@ -1346,12 +1346,12 @@ func (s *resealTestSuite) testResealKeyForBootchainsWithTryModel(c *C, shimId, g
 		case 2: // recovery keys
 			c.Assert(params.Keys, DeepEquals, []secboot.KeyFileOrSlotName{
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-data-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-data",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-data.recovery.sealed-key"),
 				},
 				{
-					DevicePath: "/dev/disk/by-partlabel/ubuntu-save-enc",
+					DevicePath: "/dev/disk/by-partlabel/ubuntu-save",
 					SlotName:   "default-fallback",
 					KeyFile:    filepath.Join(s.rootdir, "run/mnt/ubuntu-seed/device/fde/ubuntu-save.recovery.sealed-key"),
 				},
