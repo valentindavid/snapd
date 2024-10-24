@@ -423,16 +423,16 @@ func SealKeys(keys []SealKeyRequest, params *SealKeysParams) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if err := key.BootstrappedContainer.AddKey(key.SlotName, unlockKey); err != nil {
+			return nil, err
+		}
 		if key.KeyFile != "" {
-			if err := key.BootstrappedContainer.AddKey(key.SlotName, unlockKey); err != nil {
-				return nil, err
-			}
 			writer := sb.NewFileKeyDataWriter(key.KeyFile)
 			if err := protectedKey.WriteAtomic(writer); err != nil {
 				return nil, err
 			}
 		} else {
-			tokenWriter, err := key.BootstrappedContainer.AddKeyAndGetTokenWriter(key.SlotName, unlockKey)
+			tokenWriter, err := key.BootstrappedContainer.GetTokenWriter(key.SlotName)
 			if err != nil {
 				return nil, err
 			}

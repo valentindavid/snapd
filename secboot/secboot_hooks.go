@@ -97,16 +97,16 @@ func SealKeysWithFDESetupHook(runHook fde.RunSetupHookFunc, keys []SealKeyReques
 		if primaryKey == nil {
 			primaryKey = primaryKeyOut
 		}
+		if err := skr.BootstrappedContainer.AddKey(skr.SlotName, unlockKey); err != nil {
+			return err
+		}
 		if skr.KeyFile != "" {
-			if err := skr.BootstrappedContainer.AddKey(skr.SlotName, unlockKey); err != nil {
-				return err
-			}
 			writer := sb.NewFileKeyDataWriter(skr.KeyFile)
 			if err := protectedKey.WriteAtomic(writer); err != nil {
 				return err
 			}
 		} else {
-			tokenWriter, err := skr.BootstrappedContainer.AddKeyAndGetTokenWriter(skr.SlotName, unlockKey)
+			tokenWriter, err := skr.BootstrappedContainer.GetTokenWriter(skr.SlotName)
 			if err != nil {
 				return err
 			}
