@@ -287,7 +287,7 @@ func readKeyFileImpl(keyfile string) (*sb.KeyData, *sb_tpm2.SealedKeyObject, err
 
 var readKeyFile = readKeyFileImpl
 
-// TODO: consider moving this to secboot
+// TODO: consider moving this to secboot_sb.go
 func readKeyData(devicePath, slotName, keyfile string) (*sb.KeyData, *sb_tpm2.SealedKeyObject, sb.KeyDataWriter, error) {
 	kd, tokenErr := readKeyToken(devicePath, slotName)
 	if tokenErr == nil {
