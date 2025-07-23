@@ -47,7 +47,6 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/disks"
 	"github.com/snapcore/snapd/osutil/kcmdline"
-	fdeBackend "github.com/snapcore/snapd/overlord/fdestate/backend"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/systemd"
 
@@ -84,8 +83,7 @@ func init() {
 type cmdInitramfsMounts struct{}
 
 func (c *cmdInitramfsMounts) Execute([]string) error {
-	boot.HasFDESetupHook = hasFDESetupHook
-	fdeBackend.RunFDESetupHook = runFDESetupHook
+	boot.FDEHookProtector = fdeHookProtector
 
 	logger.Noticef("snap-bootstrap version %v starting", snapdtool.Version)
 
@@ -297,9 +295,11 @@ func runFDESetupHook(req *fde.SetupRequest) ([]byte, error) {
 	}
 	return output, nil
 }
-func hasFDESetupHook(kernelInfo *snap.Info) (bool, error) {
-	_, ok := kernelInfo.Hooks["fde-setup"]
-	return ok, nil
+func fdeHookProtector(kernelInfo *snap.Info) (secboot.KeyProtectorFactory, error) {
+	if _, ok := kernelInfo.Hooks["fde-setup"]; ok {
+		secboot.FDEHookProtectorFactory(runFDESetupHook)
+	}
+	return nil, nil
 }
 
 func readSnapInfoFromSeed(seedSnap *seed.Snap) (*snap.Info, error) {

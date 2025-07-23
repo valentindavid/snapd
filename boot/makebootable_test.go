@@ -748,11 +748,11 @@ version: 5.0
 	})
 	defer restore()
 
-	hasFDESetupHookCalled := false
-	restore = boot.MockHasFDESetupHook(func(kernel *snap.Info) (bool, error) {
+	FDEHookProtectorCalled := false
+	restore = boot.MockFDEHookProtector(func(kernel *snap.Info) (secboot.KeyProtectorFactory, error) {
 		c.Check(kernel, Equals, kernelInfo)
-		hasFDESetupHookCalled = true
-		return false, nil
+		FDEHookProtectorCalled = true
+		return nil, nil
 	})
 	defer restore()
 
@@ -881,7 +881,7 @@ current_kernel_command_lines=["snapd_recovery_mode=run console=ttyS0 console=tty
 	c.Check(copiedRecoveryShimBin, testutil.FileEquals, "recovery shim content")
 
 	// we checked for fde-setup-hook
-	c.Check(hasFDESetupHookCalled, Equals, true)
+	c.Check(FDEHookProtectorCalled, Equals, true)
 	c.Check(sealKeyForBootChainsCalled, Equals, 1)
 }
 

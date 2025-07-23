@@ -54,11 +54,8 @@ func MockSeedReadSystemEssential(f func(seedDir, label string, essentialTypes []
 // disk encryption implementations. The state must be locked when these
 // functions are called.
 var (
-	// HasFDESetupHook purpose is to detect if the target kernel has a
-	// fde-setup-hook. If kernelInfo is nil the current kernel is checked
-	// assuming it is representative` of the target one.
-	HasFDESetupHook = func(kernelInfo *snap.Info) (bool, error) {
-		return false, nil
+	FDEHookProtector = func(kernelInfo *snap.Info) (secboot.KeyProtectorFactory, error) {
+		return nil, nil
 	}
 )
 
@@ -85,8 +82,7 @@ func MockSealKeyToModeenv(f func(key, saveKey secboot.BootstrappedContainer, pri
 }
 
 type sealKeyToModeenvFlags struct {
-	// HasFDESetupHook is true if the kernel has a fde-setup hook to use
-	HasFDESetupHook bool
+	FDEHookProtector secboot.KeyProtectorFactory
 	// FactoryReset indicates that the sealing is happening during factory
 	// reset.
 	FactoryReset bool
@@ -133,7 +129,7 @@ func sealKeyToModeenvImpl(
 	}
 
 	method := device.SealingMethodTPM
-	if flags.HasFDESetupHook {
+	if flags.FDEHookProtector != nil {
 		method = device.SealingMethodFDESetupHook
 	} else {
 		if flags.StateUnlocker != nil {
@@ -169,6 +165,8 @@ type SealKeyForBootChainsParams struct {
 	InstallHostWritableDir string
 	// PrimaryKey is the chosen primary key if it was chosen. It can be nil if not.
 	PrimaryKey []byte
+
+	FDEHook secboot.KeyProtectorFactory
 }
 
 func sealKeyForBootChainsImpl(
@@ -197,6 +195,7 @@ func sealKeyToModeenvForMethod(
 		UseTokens:              flags.UseTokens,
 		InstallHostWritableDir: InstallHostWritableDir(model),
 		PrimaryKey:             primaryKey,
+		FDEHook:                flags.FDEHookProtector,
 	}
 
 	var tbl bootloader.TrustedAssetsBootloader

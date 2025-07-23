@@ -184,11 +184,11 @@ func MockBootloaderFind(f func(rootdir string, opts *bootloader.Options) (bootlo
 	return r
 }
 
-func MockHasFDESetupHook(f func(*snap.Info) (bool, error)) (restore func()) {
-	oldHasFDESetupHook := HasFDESetupHook
-	HasFDESetupHook = f
+func MockFDEHookProtector(f func(*snap.Info) (secboot.KeyProtectorFactory, error)) (restore func()) {
+	oldFDEHookProtector := FDEHookProtector
+	FDEHookProtector = f
 	return func() {
-		HasFDESetupHook = oldHasFDESetupHook
+		FDEHookProtector = oldFDEHookProtector
 	}
 }
 

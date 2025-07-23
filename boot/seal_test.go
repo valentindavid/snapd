@@ -22,6 +22,7 @@ package boot_test
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1588,6 +1589,20 @@ func (s *sealSuite) TestIsResealNeeded(c *C) {
 	c.Check(cnt, Equals, 3)
 }
 
+type fakeProtector struct {
+}
+
+type fakeProtectorFactory struct {
+}
+
+func (*fakeProtector) ProtectKey(rand io.Reader, cleartext, aad []byte) (ciphertext []byte, handle []byte, err error) {
+	return nil, nil, fmt.Errorf("unexpected call")
+}
+
+func (*fakeProtectorFactory) ForKeyName(name string) secboot.KeyProtector {
+	return &fakeProtector{}
+}
+
 func (s *sealSuite) TestSealToModeenvWithFdeHookHappy(c *C) {
 	rootdir := c.MkDir()
 	dirs.SetRootDir(rootdir)
@@ -1640,7 +1655,7 @@ func (s *sealSuite) TestSealToModeenvWithFdeHookHappy(c *C) {
 
 	defer boot.MockSealModeenvLocked()()
 
-	err := boot.SealKeyToModeenv(myKey, myKey2, nil, nil, model, modeenv, boot.MockSealKeyToModeenvFlags{HasFDESetupHook: true, UseTokens: true})
+	err := boot.SealKeyToModeenv(myKey, myKey2, nil, nil, model, modeenv, boot.MockSealKeyToModeenvFlags{FDEHookProtector: &fakeProtectorFactory{}, UseTokens: true})
 	c.Assert(err, IsNil)
 	c.Check(sealKeyForBootChainsCalled, Equals, 1)
 }
@@ -1673,7 +1688,7 @@ func (s *sealSuite) TestSealToModeenvWithFdeHookSad(c *C) {
 
 	defer boot.MockSealModeenvLocked()()
 
-	err := boot.SealKeyToModeenv(key, saveKey, nil, nil, model, modeenv, boot.MockSealKeyToModeenvFlags{HasFDESetupHook: true})
+	err := boot.SealKeyToModeenv(key, saveKey, nil, nil, model, modeenv, boot.MockSealKeyToModeenvFlags{FDEHookProtector: &fakeProtectorFactory{}})
 	c.Assert(err, ErrorMatches, `seal key failed`)
 	c.Check(sealKeyForBootChainsCalled, Equals, 1)
 }
@@ -1697,8 +1712,8 @@ func (s *sealSuite) TestResealKeyToModeenvWithFdeHookCalled(c *C) {
 	// TODO: this simulates that the hook is not available yet
 	//       because of e.g. seeding. Longer term there will be
 	//       more, see TODO in resealKeyToModeenvUsingFDESetupHookImpl
-	restore = boot.MockHasFDESetupHook(func(kernel *snap.Info) (bool, error) {
-		return false, fmt.Errorf("hook not available yet because e.g. seeding")
+	restore = boot.MockFDEHookProtector(func(kernel *snap.Info) (secboot.KeyProtectorFactory, error) {
+		return nil, fmt.Errorf("hook not available yet because e.g. seeding")
 	})
 	defer restore()
 

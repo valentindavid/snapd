@@ -634,7 +634,7 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, observer Tr
 	}
 
 	if observer != nil && observerImpl.useEncryption {
-		hasHook, err := HasFDESetupHook(bootWith.Kernel)
+		protector, err := FDEHookProtector(bootWith.Kernel)
 		if err != nil {
 			return fmt.Errorf("cannot check for fde-setup hook: %v", err)
 		}
@@ -647,11 +647,11 @@ func makeRunnableSystem(model *asserts.Model, bootWith *BootableSet, observer Tr
 		}
 
 		flags := sealKeyToModeenvFlags{
-			HasFDESetupHook: hasHook,
-			FactoryReset:    makeOpts.AfterDataReset,
-			SeedDir:         makeOpts.SeedDir,
-			StateUnlocker:   makeOpts.StateUnlocker,
-			UseTokens:       tokens,
+			FDEHookProtector: protector,
+			FactoryReset:     makeOpts.AfterDataReset,
+			SeedDir:          makeOpts.SeedDir,
+			StateUnlocker:    makeOpts.StateUnlocker,
+			UseTokens:        tokens,
 		}
 		if makeOpts.Standalone {
 			flags.SnapsDir = snapBlobDir

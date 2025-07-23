@@ -26,7 +26,6 @@ import (
 	"github.com/snapcore/snapd/boot"
 	"github.com/snapcore/snapd/bootloader"
 	"github.com/snapcore/snapd/gadget/device"
-	"github.com/snapcore/snapd/kernel/fde"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/secboot"
 )
@@ -36,15 +35,6 @@ var (
 	secbootSealKeys                 = secboot.SealKeys
 	secbootSealKeysWithFDESetupHook = secboot.SealKeysWithFDESetupHook
 	secbootFindFreeHandle           = secboot.FindFreeHandle
-)
-
-// Hook functions setup by devicestate to support device-specific full
-// disk encryption implementations. The state must be locked when these
-// functions are called.
-var (
-	RunFDESetupHook fde.RunSetupHookFunc = func(req *fde.SetupRequest) ([]byte, error) {
-		return nil, fmt.Errorf("internal error: RunFDESetupHook not set yet")
-	}
 )
 
 func runKeySealRequests(key secboot.BootstrappedContainer, useTokens bool) []secboot.SealKeyRequest {
@@ -187,7 +177,7 @@ func sealKeyForBootChainsHook(key, saveKey secboot.BootstrappedContainer, params
 	}
 
 	skrs := append(runKeySealRequests(key, params.UseTokens), fallbackKeySealRequests(key, saveKey, params.FactoryReset, params.UseTokens)...)
-	if err := secbootSealKeysWithFDESetupHook(RunFDESetupHook, skrs, &sealingParams); err != nil {
+	if err := secbootSealKeysWithFDESetupHook(params.FDEHook, skrs, &sealingParams); err != nil {
 		return err
 	}
 
@@ -298,16 +288,10 @@ func MockSecbootSealKeys(f func(keys []secboot.SealKeyRequest, params *secboot.S
 	}
 }
 
-func MockSecbootSealKeysWithFDESetupHook(f func(runHook fde.RunSetupHookFunc, keys []secboot.SealKeyRequest, params *secboot.SealKeysWithFDESetupHookParams) error) (restore func()) {
+func MockSecbootSealKeysWithFDESetupHook(f func(hook secboot.KeyProtectorFactory, keys []secboot.SealKeyRequest, params *secboot.SealKeysWithFDESetupHookParams) error) (restore func()) {
 	old := secbootSealKeysWithFDESetupHook
 	secbootSealKeysWithFDESetupHook = f
 	return func() {
 		secbootSealKeysWithFDESetupHook = old
 	}
-}
-
-func MockRunFDESetupHook(f fde.RunSetupHookFunc) (restore func()) {
-	oldRunFDESetupHook := RunFDESetupHook
-	RunFDESetupHook = f
-	return func() { RunFDESetupHook = oldRunFDESetupHook }
 }

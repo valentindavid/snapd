@@ -69,7 +69,28 @@ func (h *hookKeyProtector) ProtectKey(rand io.Reader, cleartext, aad []byte) (ci
 	}
 }
 
-func SealKeysWithFDESetupHook(runHook fde.RunSetupHookFunc, keys []SealKeyRequest, params *SealKeysWithFDESetupHookParams) error {
+type KeyProtectorFactory interface {
+	ForKeyName(name string) sb_hooks.KeyProtector
+}
+
+type fdeHookProtectorFactory struct {
+	runHook fde.RunSetupHookFunc
+}
+
+func (f *fdeHookProtectorFactory) ForKeyName(name string) sb_hooks.KeyProtector {
+	return &hookKeyProtector{
+		runHook: f.runHook,
+		keyName: name,
+	}
+}
+
+type KeyProtector = sb_hooks.KeyProtector
+
+func FDEHookProtectorFactory(runHook fde.RunSetupHookFunc) KeyProtectorFactory {
+	return &fdeHookProtectorFactory{runHook: runHook}
+}
+
+func SealKeysWithFDESetupHook(hook KeyProtectorFactory, keys []SealKeyRequest, params *SealKeysWithFDESetupHookParams) error {
 	var primaryKey sb.PrimaryKey
 	if params.PrimaryKey != nil {
 		// TODO:FDEM:FIX: add unit test taking that primary key
@@ -77,10 +98,7 @@ func SealKeysWithFDESetupHook(runHook fde.RunSetupHookFunc, keys []SealKeyReques
 	}
 
 	for _, skr := range keys {
-		protector := &hookKeyProtector{
-			runHook: runHook,
-			keyName: skr.KeyName,
-		}
+		protector := hook.ForKeyName(skr.KeyName)
 		// TODO:FDEM: add support for AEAD (consider OP-TEE work)
 		flags := sb_hooks.KeyProtectorNoAEAD
 		sb_hooks.SetKeyProtector(protector, flags)

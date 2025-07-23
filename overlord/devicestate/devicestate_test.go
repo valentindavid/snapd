@@ -1828,9 +1828,9 @@ func (s *deviceMgrSuite) TestHasFdeSetupHook(c *C) {
 	} {
 		makeInstalledMockKernelSnap(c, st, tc.kernelYaml)
 
-		hasHook, err := devicestate.DeviceManagerHasFDESetupHook(s.mgr, nil)
+		protector, err := devicestate.DeviceManagerFDEHookProtector(s.mgr, nil)
 		c.Assert(err, IsNil)
-		c.Check(hasHook, Equals, tc.hasFdeSetupHook)
+		c.Check(protector != nil, Equals, tc.hasFdeSetupHook)
 	}
 }
 
@@ -1853,13 +1853,13 @@ func (s *deviceMgrSuite) TestHasFdeSetupHookOtherKernel(c *C) {
 	_, otherInfo := snaptest.MakeTestSnapInfoWithFiles(c, kernelYamlWithFdeSetup, nil, otherSI)
 	makeInstalledMockKernelSnap(c, st, kernelYamlNoFdeSetup)
 
-	hasHook, err := devicestate.DeviceManagerHasFDESetupHook(s.mgr, nil)
+	protector, err := devicestate.DeviceManagerFDEHookProtector(s.mgr, nil)
 	c.Assert(err, IsNil)
-	c.Check(hasHook, Equals, false)
+	c.Check(protector != nil, Equals, false)
 
-	hasHook, err = devicestate.DeviceManagerHasFDESetupHook(s.mgr, otherInfo)
+	protector, err = devicestate.DeviceManagerFDEHookProtector(s.mgr, otherInfo)
 	c.Assert(err, IsNil)
-	c.Check(hasHook, Equals, true)
+	c.Check(protector != nil, Equals, true)
 }
 
 func (s *deviceMgrSuite) TestRunFDESetupHookHappy(c *C) {

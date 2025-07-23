@@ -1426,10 +1426,10 @@ func createSaveBootstrappedContainer(saveNode string) (secboot.BootstrappedConta
 //   - Remove factory-reset-* keyslots.
 //   - Release TPM handles used by the removed keys.
 func rotateSaveKeyAndDeleteOldKeys(saveMntPnt string) error {
-	hasHook, err := boot.HasFDESetupHook(nil)
+	protector, err := boot.FDEHookProtector(nil)
 	if err != nil {
 		logger.Noticef("WARNING: cannot determine whether FDE hooks are in use: %v", err)
-		hasHook = false
+		protector = nil
 	}
 
 	uuid, err := disksDMCryptUUIDFromMountPoint(saveMntPnt)
@@ -1460,7 +1460,7 @@ func rotateSaveKeyAndDeleteOldKeys(saveMntPnt string) error {
 		diskPath,
 		oldPossiblyTPMKeySlots,
 		oldKeys,
-		hasHook,
+		protector != nil,
 	)
 	if err != nil {
 		return fmt.Errorf("could not clean up old counter handles: %v", err)
