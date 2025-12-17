@@ -317,21 +317,21 @@ func postSystemsInstallFinish(cli *client.Client,
 	return waitChange(chgId)
 }
 
-// func postSystemsInstallPreseed(cli *client.Client,
-// 	details *client.SystemDetails, chroot string) error {
+func postSystemsInstallPreseed(cli *client.Client,
+	details *client.SystemDetails, chroot string) error {
 
-// 	// Finish steps does the writing of assets
-// 	opts := &client.InstallSystemOptions{
-// 		Step:   client.InstallStepPreseed,
-// 		Chroot: &chroot,
-// 	}
-// 	chgId, err := cli.InstallSystem(details.Label, opts)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Printf("Change %s created\n", chgId)
-// 	return waitChange(chgId)
-// }
+	// Finish steps does the writing of assets
+	opts := &client.InstallSystemOptions{
+		Step:   client.InstallStepPreseed,
+		Chroot: &chroot,
+	}
+	chgId, err := cli.InstallSystem(details.Label, opts)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Change %s created\n", chgId)
+	return waitChange(chgId)
+}
 
 func maybeGetOptionalInstall(path string) (*client.OptionalInstallRequest, error) {
 	if path == "" {
@@ -427,8 +427,11 @@ func unmountFilesystems(mntPts []string) (err error) {
 func createClassicRootfsIfNeeded(rootfsCreator string) error {
 	dst := runMntFor("ubuntu-data")
 
-	if output, stderr, err := osutil.RunSplitOutput(rootfsCreator, dst); err != nil {
-		return osutil.OutputErrCombine(output, stderr, err)
+	cmd := exec.Command(rootfsCreator, dst)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
 	}
 
 	return nil
@@ -568,7 +571,7 @@ func fillPartiallyDefinedVolume(vol *gadget.Volume, bootDevice string) error {
 	return nil
 }
 
-func run(seedLabel, bootDevice, rootfsCreator, optionalInstallPath, recoveryKeyOut string, volumesAuth volumeAuthOptions) error {
+func run(seedLabel, bootDevice, rootfsCreator, optionalInstallPath, recoveryKeyOut string, preseedRootfs bool, volumesAuth volumeAuthOptions) error {
 	logger.Noticef("installing on %q", bootDevice)
 
 	cli := client.New(nil)
@@ -613,36 +616,44 @@ func run(seedLabel, bootDevice, rootfsCreator, optionalInstallPath, recoveryKeyO
 			}
 		}
 	}
+	logger.Noticef("creating and mounting filesystems")
+
 	mntPts, err := createAndMountFilesystems(bootDevice, details.Volumes, encryptedDevices)
 	if err != nil {
 		return fmt.Errorf("cannot create filesystems: %v", err)
 	}
 
 	hasSystemSeed := checkForRole(details, gadget.SystemSeed)
+	logger.Noticef("has system seed %v", hasSystemSeed)
 	isCore := rootfsCreator == ""
 	if isCore || !hasSystemSeed {
+		logger.Noticef("copying seed to partition")
 		if err := copySeedToDataPartition(); err != nil {
 			return fmt.Errorf("cannot create seed on data partition: %v", err)
 		}
 	}
 
 	if !isCore {
+		logger.Noticef("creating classic rootfs")
 		if err := createClassicRootfsIfNeeded(rootfsCreator); err != nil {
 			return fmt.Errorf("cannot create classic rootfs: %v", err)
+		}
+	}
+
+	if preseedRootfs {
+		logger.Noticef("preseeding classic rootfs")
+		if err := postSystemsInstallPreseed(cli, details, runMntFor("ubuntu-data")); err != nil {
+			return fmt.Errorf("cannot preseed installed system: %w", err)
 		}
 	}
 
 	if err := unmountFilesystems(mntPts); err != nil {
 		return fmt.Errorf("cannot unmount filesystems: %v", err)
 	}
+
 	if err := postSystemsInstallFinish(cli, details, bootDevice, optionalInstallPath, dgpairs); err != nil {
 		return fmt.Errorf("cannot finalize install: %v", err)
 	}
-
-	// TODO when to run this?
-	// if err := postSystemsInstallPreseed(cli, details, runMntFor("ubuntu-data")); err != nil {
-	// 	return fmt.Errorf("cannot preseed installed system: %w", err)
-	// }
 
 	// TODO: reboot here automatically (optional)
 
@@ -669,11 +680,17 @@ func main() {
 	kdfType := flag.String("kdf-type", "", "KDF type for passphrase [\"argon2id\", \"argon2i\" or \"pbkdf2\"] (optional)")
 	kdfTime := flag.Duration("kdf-time", 0, "length of time to run the KDF (optional)")
 	recoveryKeyOut := flag.String("recovery-key-out", "", "indicate that a recovery key should be created and stored at given path (optional)")
+	preseedRootfs := flag.Bool("preseed-rootfs", false, "Preseed rootfs")
 
 	flag.Parse()
 
 	if *seedLabel == "" || *bootDevice == "" {
 		flag.Usage()
+		os.Exit(1)
+	}
+
+	if *preseedRootfs && *rootfsCreator == "" {
+		fmt.Fprintf(os.Stderr, "Cannot preseed rootfs for Ubuntu Core\n")
 		os.Exit(1)
 	}
 
@@ -689,7 +706,7 @@ func main() {
 		kdfTime:    *kdfTime,
 	}
 
-	if err := run(*seedLabel, *bootDevice, *rootfsCreator, *optionalInstallPath, *recoveryKeyOut, volumesAuth); err != nil {
+	if err := run(*seedLabel, *bootDevice, *rootfsCreator, *optionalInstallPath, *recoveryKeyOut, *preseedRootfs, volumesAuth); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

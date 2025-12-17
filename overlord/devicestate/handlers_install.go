@@ -1282,6 +1282,8 @@ func (m *DeviceManager) doInstallPreseed(t *state.Task, _ *tomb.Tomb) error {
 		defer st.Lock()
 
 		cmd := exec.Command("snap", "debug", "preseed-chroot", targetChroot, systemLabel)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 	})
 	if err != nil {
