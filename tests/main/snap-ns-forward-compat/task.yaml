@@ -7,7 +7,11 @@ details: |
 
 # Skip 32-bit architectures because the core20 snap is not available there
 # Skip debian-sid as pivot_root binary is not anymore within util-linux
-systems: [-*-32, -debian-sid-*]
+systems:
+  - -*-32
+  - -debian-sid-*
+  # pivot_root not on Ubuntu Core 26 either
+  - -ubuntu-core-26*
 
 prepare: |
     echo "Install test snap"

@@ -42,7 +42,14 @@ execute: |
 
     echo "Check that a simple shell snap"
     SHELL_SNAP="test-snapd-sh-${base_snap}"
-    snap install "$SHELL_SNAP"
+    case "${base_snap}" in
+      core26)
+        snap install --edge "$SHELL_SNAP"
+        ;;
+      *)
+        snap install --edge "$SHELL_SNAP"
+        ;;
+    esac
     "${SHELL_SNAP}.sh" -c 'echo hello' | MATCH hello
 
     if python3 -m json.tool < /var/lib/snapd/system-key | grep '"build-id": ""'; then
