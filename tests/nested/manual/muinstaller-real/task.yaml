@@ -163,6 +163,10 @@ execute: |
       remote.exec "sudo snap debug api /v2/system-info/storage-encrypted 2>/dev/null"
   }
 
+  api_get_v2_systems_classic() {
+    remote.exec "sudo snap debug api /v2/systems/classic 2>/dev/null"
+  }
+
   # check encryption 
   remote.exec "sudo snap install test-snapd-tools"
   remote.exec "snap list" | MATCH "test-snapd-tools"
@@ -202,8 +206,7 @@ execute: |
       done
 
       # check that on an already provisioned system the API will use post install checks
-      remote.exec "sudo snap debug api /v2/systems/classic" > system
-      gojq '.result."storage-encryption".support' < system | MATCH "available"
+      api_get_v2_systems_classic | gojq '.result."storage-encryption".support' < system | MATCH "available"
   fi
 
   if os.query is-ubuntu-ge 24.04; then
@@ -426,9 +429,5 @@ execute: |
       remote.exec "findmnt -n /etc/${name}" | awk '{ print $2 }' | MATCH "tmpfs\[/snapd/hybrid-users/${name}\]"
   done
 
-  api_get_v2_systems_classic() {
-    remote.exec "sudo snap debug api /v2/systems/classic 2>/dev/null"
-  }
-
-  api_get_v2_systems_classic | gojq '.result["storage-encryption"].support' | MATCH "available"
-  api_get_v2_systems_classic | gojq '.result["storage-encryption"]."encryption-type"' | MATCH "cryptsetup"
+  api_get_v2_systems_classic | gojq '.result."storage-encryption".support' | MATCH "available"
+  api_get_v2_systems_classic | gojq '.result."storage-encryption"."encryption-type"' | MATCH "cryptsetup"
