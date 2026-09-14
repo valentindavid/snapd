@@ -210,6 +210,7 @@ execute: |
 
       # check that on an already provisioned system the API will use post install checks
       api_get_v2_systems_classic | gojq '.result."storage-encryption".support' | MATCH "available"
+      api_get_v2_systems_classic | gojq '.result."storage-encryption"."encryption-type"' | MATCH "cryptsetup"
   fi
 
   if os.query is-ubuntu-ge 24.04; then
@@ -431,6 +432,3 @@ execute: |
   for name in passwd shadow group gshadow; do
       remote.exec "findmnt -n /etc/${name}" | awk '{ print $2 }' | MATCH "tmpfs\[/snapd/hybrid-users/${name}\]"
   done
-
-  api_get_v2_systems_classic | gojq '.result."storage-encryption".support' | MATCH "available"
-  api_get_v2_systems_classic | gojq '.result."storage-encryption"."encryption-type"' | MATCH "cryptsetup"
