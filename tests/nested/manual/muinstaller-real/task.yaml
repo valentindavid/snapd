@@ -51,6 +51,9 @@ restore: |
   "$TESTSTOOLS"/store-state teardown-fake-store "$STORE_DIR"
   rm -rf pc-kernel.* pc.* initrd* linux* kernel* tmp* pc-gadget pc-kernel-from-store.* pc-kernel-repacked.snap classic.model disk.img pc-kernel core*
 
+debug: |
+  remote.exec "sudo snap debug api /v2/systems/classic" || true
+
 execute: |
   # shellcheck source=tests/lib/prepare.sh
   . "$TESTSLIB/prepare.sh"
