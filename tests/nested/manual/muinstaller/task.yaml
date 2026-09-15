@@ -101,6 +101,7 @@ execute: |
   rm -rf classic-seed
 
   snap debug api /v2/systems | gojq '.result.systems[0].label' | MATCH "$LABEL"
+  snap debug api "/v2/systems/$LABEL"
   snap debug api "/v2/systems/$LABEL" > system
   gojq '.result.model.distribution' system | MATCH "ubuntu"
 
